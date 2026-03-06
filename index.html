@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Glam Starts Semana - Classificador inteligente de produtos de beleza usando Machine Learning">
+    <title>Glam Starts Semana | Classificador de Produtos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <!-- Teachable Machine Image Library -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+</head>
+
+<body>
+    <!-- Animated Background Particles -->
+    <div class="bg-particles" id="bg-particles"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <circle cx="16" cy="16" r="14" stroke="url(#grad1)" stroke-width="2.5" />
+                        <path d="M10 20C10 20 12 12 16 12C20 12 22 20 22 20" stroke="url(#grad1)" stroke-width="2.5"
+                            stroke-linecap="round" />
+                        <circle cx="16" cy="10" r="2" fill="url(#grad1)" />
+                        <defs>
+                            <linearGradient id="grad1" x1="0" y1="0" x2="32" y2="32">
+                                <stop offset="0%" stop-color="#e879f9" />
+                                <stop offset="100%" stop-color="#f59e0b" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h1 class="logo-text">Glam Starts <span class="highlight">Semana</span></h1>
+            </div>
+            <p class="subtitle">Classificador Inteligente de Produtos de Beleza</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Status Card -->
+            <div class="status-card" id="status-card">
+                <div class="status-icon" id="status-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 6v6l4 2" />
+                    </svg>
+                </div>
+                <p class="status-text" id="status-text">Inicie a câmera ou faça upload de uma foto para analisar</p>
+            </div>
+            <br />
+
+            <div class="action-buttons">
+                <!-- Start Button -->
+                <button type="button" class="start-btn" id="start-btn" onclick="init()">
+                    <span class="btn-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path
+                                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                        </svg>
+                    </span>
+                    <span class="btn-text">Câmera</span>
+                    <span class="btn-shine"></span>
+                </button>
+
+                <!-- Upload Button -->
+                <button type="button" class="upload-btn" id="upload-btn"
+                    onclick="document.getElementById('file-input').click()">
+                    <span class="btn-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                    </span>
+                    <span class="btn-text">Upload</span>
+                    <input type="file" id="file-input" style="display: none;" accept="image/*"
+                        onchange="handleFileUpload(event)">
+                    <span class="btn-shine"></span>
+                </button>
+            </div>
+
+            <!-- Webcam Container -->
+            <div class="webcam-wrapper" id="webcam-wrapper" style="display: none;">
+                <div class="webcam-frame">
+                    <div class="webcam-corner tl"></div>
+                    <div class="webcam-corner tr"></div>
+                    <div class="webcam-corner bl"></div>
+                    <div class="webcam-corner br"></div>
+                    <div id="webcam-container" class="webcam-container"></div>
+                    <div class="scan-line"></div>
+                </div>
+                <p class="webcam-label">
+                    <span class="pulse-dot"></span>
+                    Analisando em tempo real...
+                </p>
+            </div>
+
+            <!-- Image Preview Container (for Upload) -->
+            <div class="image-preview-wrapper" id="image-preview-wrapper" style="display: none;">
+                <div class="webcam-frame">
+                    <div class="webcam-corner tl"></div>
+                    <div class="webcam-corner tr"></div>
+                    <div class="webcam-corner bl"></div>
+                    <div class="webcam-corner br"></div>
+                    <div class="image-container" style="line-height: 0; padding: 2px;">
+                        <img id="uploaded-image" src="" alt="Produto enviado"
+                            style="width: 280px; height: 280px; object-fit: cover; border-radius: 20px;">
+                    </div>
+                </div>
+                <p class="webcam-label">Foto analisada</p>
+            </div>
+
+            <!-- Predictions Container -->
+            <div class="predictions-wrapper" id="predictions-wrapper" style="display: none;">
+                <h2 class="predictions-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    Resultados da Análise
+                </h2>
+                <div id="label-container" class="label-container"></div>
+            </div>
+
+            <!-- Product Info Cards -->
+            <div class="product-info-section" id="product-info-section" style="display: none;">
+                <h2 class="section-title">Produto Detectado</h2>
+                <div class="product-card" id="product-card">
+                    <div class="product-card-inner">
+                        <div class="product-emoji" id="product-emoji">✨</div>
+                        <h3 class="product-name" id="product-name">Aguardando...</h3>
+                        <p class="product-description" id="product-description">Aponte a câmera para um produto</p>
+                        <div class="confidence-badge" id="confidence-badge">
+                            <span class="confidence-value" id="confidence-value">0%</span>
+                            <span class="confidence-label">confiança</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Powered by <strong>Teachable Machine</strong> & <strong>TensorFlow.js</strong></p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
